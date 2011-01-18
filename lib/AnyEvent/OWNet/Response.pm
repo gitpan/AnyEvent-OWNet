@@ -2,7 +2,7 @@ use strict;
 use warnings;
 package AnyEvent::OWNet::Response;
 BEGIN {
-  $AnyEvent::OWNet::Response::VERSION = '1.110050';
+  $AnyEvent::OWNet::Response::VERSION = '1.110180';
 }
 
 # ABSTRACT: Module for responses from 1-wire File System server
@@ -73,7 +73,7 @@ AnyEvent::OWNet::Response - Module for responses from 1-wire File System server
 
 =head1 VERSION
 
-version 1.110050
+version 1.110180
 
 =head1 SYNOPSIS
 

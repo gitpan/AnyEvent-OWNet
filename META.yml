@@ -27,4 +27,4 @@ requires:
 resources:
   bugtracker: http://github.com/beanz/anyevent-ownet-perl/issues
   repository: git://github.com/beanz/anyevent-ownet-perl.git
-version: 1.110050
+version: 1.110180

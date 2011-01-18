@@ -2,7 +2,7 @@ use strict;
 use warnings;
 package AnyEvent::OWNet;
 BEGIN {
-  $AnyEvent::OWNet::VERSION = '1.110050';
+  $AnyEvent::OWNet::VERSION = '1.110180';
 }
 
 # ABSTRACT: Client for 1-wire File System server
@@ -164,7 +164,7 @@ sub connect {
                               print STDERR "handle error $_[2]\n" if DEBUG;
                               $_[0]->destroy;
                               if ($_[1]) {
-                                $self->cleanup($_[2]);
+                                $self->cleanup('Error: '.$_[2]);
                               }
                             },
                             on_eof => sub {
@@ -263,6 +263,26 @@ sub devices {
 }
 
 
+sub device_files {
+  my ($self, $cb, $files, $offset, $cv) = @_;
+  $files = [$files] unless (ref $files);
+  $cv = $self->devices(sub {
+                 my $dev = shift;
+                 foreach my $file (@$files) {
+                   $cv->begin;
+                   $self->get($dev.$file,
+                            sub {
+                              my $res = shift;
+                              $cv->end;
+                              my $value = $res->{data};
+                              return unless (defined $value);
+                              $cb->($dev, $file, 0+$value);
+                            });
+                 }
+               }, $offset, $cv);
+}
+
+
 sub anyevent_read_type {
   my ($handle, $cb, $command) = @_;
 
@@ -327,24 +347,29 @@ AnyEvent::OWNet - Client for 1-wire File System server
 
 =head1 VERSION
 
-version 1.110050
+version 1.110180
 
 =head1 SYNOPSIS
 
   # IMPORTANT: the API is subject to change
 
   my $ow = AnyEvent::OWNet->new(host => '127.0.0.1',
-                                port => 4304,
                                 on_error => sub { warn @_ });
 
   # Read temperature sensor
   $ow->read('/10.123456789012/temperature', sub { my ($res) = @_; ... });
 
-  # Read the temperatures of all devices that are found
+  # List all devices
   my $cv;
   $cv = $ow->devices(sub {
                        my $dev = shift;
                        print $dev, "\n";
+                     });
+  $cv->recv;
+
+  # Read the temperatures of all devices that are found
+  $cv = $ow->devices(sub {
+                       my $dev = shift;
                        $cv->begin;
                        $ow->get($dev.'temperature',
                                 sub {
@@ -352,9 +377,23 @@ version 1.110050
                                   $cv->end;
                                   my $value = $res->{data};
                                   return unless (defined $value);
-                                  print $dev, " = ", 0+$value, "\n";
+                                  print $dev, ' = ', 0+$value, "\n";
                                 });
                      });
+  $cv->recv;
+
+  # short version of the above
+  $cv = $ow->device_files(sub {
+                            my ($dev, $file, $value) = @_;
+                            print $dev, ' = ', 0+$value, "\n";
+                          }, 'temperature');
+  $cv->recv;
+
+  # read humidity as well
+  $cv = $ow->device_files(sub {
+                            my ($dev, $file, $value) = @_;
+                            print $dev, $file, ' = ', 0+$value, "\n";
+                          }, ['temperature', 'humidity']);
   $cv->recv;
 
 =head1 DESCRIPTION
@@ -459,6 +498,13 @@ example.
 
 This method currently assumes that the C<owserver> supports the C<getslash>
 function and if this is not the case it will fail.
+
+=head2 C<device_files( $callback, $file, [ $path, [ $condvar ] ] )>
+
+Visit each device using L<devices()> and call the callback with the
+result of successful L<get()> calls for C<$file> relative to each
+device found.  If C<$file> is an array reference each array element
+is treated as a relative file.
 
 =head2 C<anyevent_read_type()>
 
