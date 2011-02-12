@@ -23,8 +23,8 @@ requires:
   Carp: 0
   Try::Tiny: 0
   constant: 0
-  perl: 5.010
+  perl: 5.008
 resources:
   bugtracker: http://github.com/beanz/anyevent-ownet-perl/issues
   repository: git://github.com/beanz/anyevent-ownet-perl.git
-version: 1.110180
+version: 1.110430
